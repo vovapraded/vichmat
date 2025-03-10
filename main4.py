@@ -1,31 +1,33 @@
 import math
 
-# Инициализация значений
-x0 = 0
-y0 = 0
 
-# Устанавливаем точность
-tolerance = 0.01
+# Функция g(x), преобразованная из исходного уравнения
+def g(x):
+    return (3.125 * x ** 2 + 3.5 * x - 2.458) / x
+
+
+# Инициализация значений
+x0 = 2  # Начальное приближение
+tolerance = 0.01  # Точность
+iteration_count = 0
 
 # Массив для хранения результатов
 iterations = []
 
-# Выполнение итераций
-iteration_count = 0
+# Выполнение итераций методом простых итераций
 while True:
-    # Вычисляем новые значения y и x через φ(x) и φ(y)
-    y1 = math.sin(x0 + 0.5) - 1  # φ(x) для y
-    x1 = -math.cos(y0 - 2)      # φ(y) для x
+    # Вычисляем следующее приближение
+    x1 = g(x0)
 
     # Сохраняем результаты
-    iterations.append((iteration_count, x0, y0, x1, y1, x1-x0))
+    iterations.append((iteration_count, x0, x1, abs(x1 - x0)))
 
     # Проверяем, достигнута ли требуемая точность
-    if abs(x1 - x0) < tolerance and abs(y1 - y0) < tolerance:
+    if abs(x1 - x0) < tolerance:
         break
 
     # Обновляем значения для следующей итерации
-    x0, y0 = x1, y1
+    x0 = x1
     iteration_count += 1
 
 # Вывод результатов итераций

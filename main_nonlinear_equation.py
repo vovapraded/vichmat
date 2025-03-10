@@ -11,31 +11,41 @@ def numerical_derivative(f, x, h=1e-5):
         print(f"Ошибка переполнения при вычислении производной в точке x = {x}")
         return None
 
+# Метод для вычисления второй численной производной
+def second_derivative(f, x, h=1e-5):
+    return (f(x + h) - 2 * f(x) + f(x - h)) / (h ** 2)
+# Метод хорд с выбором фиксированного конца по знаку второй производной
+def chord_method_fixed(f, a, b, epsilon, max_iterations=1000):
+    if f(a) * f(b) > 0:
+        print("Нет корней на данном интервале!")
+        return None, 0
 
-# Метод хорд (метод деления отрезка)
-def chord_method(f, a, b, epsilon, max_iterations=1000):
-    try:
-        fa, fb = f(a), f(b)
-        if fa * fb > 0:
-            print("Нет корней на данном интервале!")
-            return None, 0
+    # Вычисляем вторые производные на концах
+    fpp_a = second_derivative(f, a)
+    fpp_b = second_derivative(f, b)
 
-        for i in range(max_iterations):
-            x_next = (a * f(b) - b * f(a)) / (f(b) - f(a))  # Метод хорд
-            if abs(f(x_next)) < epsilon:
-                return x_next, i + 1
-            if f(a) * f(x_next) < 0:
-                b = x_next
-            else:
-                a = x_next
-        return x_next, max_iterations
-    except OverflowError:
-        print("Ошибка переполнения при вычислениях метода хорд.")
-        return None, max_iterations
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")
-        return None, max_iterations
+    # Выбираем фиксированный конец
+    if np.sign(f(a)) == np.sign(fpp_a):
+        fixed = 'a'
+    else:
+        fixed = 'b'
 
+    x_next = a if fixed == 'a' else b
+    for i in range(max_iterations):
+        if fixed == 'a':
+            x_next = b - (f(b) * (b - a)) / (f(b) - f(a))
+        else:
+            x_next = a - (f(a) * (a - b)) / (f(a) - f(b))
+
+        if abs(f(x_next)) < epsilon:
+            return x_next, i + 1
+
+        if fixed == 'a':
+            b = x_next
+        else:
+            a = x_next
+
+    return x_next, max_iterations
 
 # Метод секущих
 def secant_method(f, x0, x1, epsilon, max_iterations=1000):
@@ -199,13 +209,13 @@ def main():
         choice = input_method_choice()
         if choice is None:
             return
-
-        lambda_val = calculate_lambda(f, a, b)
-        print(f"Автоматически вычисленное значение lambda: {lambda_val}")
+        if choice == '3':
+            lambda_val = calculate_lambda(f, a, b)
+            print(f"Автоматически вычисленное значение lambda: {lambda_val}")
 
         if choice == '1':
             print("\nИспользуется метод хорд.")
-            solution, iterations = chord_method(f, a, b, epsilon)
+            solution, iterations = chord_method_fixed(f, a, b, epsilon)
         elif choice == '2':
             print("\nИспользуется метод секущих.")
             x1 = float(input("Введите второе приближение x1: "))

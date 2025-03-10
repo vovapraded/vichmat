@@ -29,7 +29,7 @@ def jacobian(x, funcs, n):
 
 
 # Метод для нахождения решения системы методом Ньютона
-def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100):
+def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100, verbose=False):
     x = np.array(x0)  # Преобразуем начальное приближение в массив numpy
     errors = []
 
@@ -47,17 +47,6 @@ def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100):
                 print("Прерывание решения.")
                 return None, i + 1, errors
 
-        # Проверка условия сходимости f(x) * f''(x) > 0 для каждой функции
-        for j in range(n):
-            f_val = funcs[j](x)
-            f_double_prime = d2f(x, funcs[j], j)
-
-            if f_val * f_double_prime <= 0:
-                print(f"Условие сходимости f(x) * f''(x) > 0 не выполняется для функции f{j + 1}.")
-                continue_solution = input(f"Хотите продолжить решение для функции f{j + 1} (y/n)? ")
-                if continue_solution.lower() != 'y':
-                    print("Прерывание решения.")
-                    return None, i + 1, errors
 
         try:
             delta_x = np.linalg.solve(J, -F)  # Решение системы J*delta_x = -F
@@ -68,6 +57,15 @@ def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100):
         x_new = x + delta_x  # Новый вектор
         error = np.linalg.norm(delta_x)  # Вектор погрешностей
         errors.append(error)
+
+        if verbose:
+            # Выводим шапку таблицы
+            if i == 0:
+                print(f"{'№ Итерации':<12}{'xk':<12}{'yk':<12}{'xk+1':<12}{'yk+1':<12}{'xk+1 - xk':<12}")
+                print("-" * 72)
+
+            # Выводим шаги в требуемом формате
+            print(f"{i + 1:<12}{x[0]:<12.6f}{x[1]:<12.6f}{x_new[0]:<12.6f}{x_new[1]:<12.6f}{np.linalg.norm(delta_x):<12.6f}")
 
         if error < epsilon:  # Если погрешность меньше требуемой, возвращаем результат
             return x_new, i + 1, errors
@@ -120,12 +118,32 @@ def main():
     # Захардкоженные функции для вашей системы уравнений
     funcs = [f1, f2]
     n = len(funcs)  # Размерность системы
-    epsilon = 1e-8  # Уменьшенная точность
-    max_iterations = 100  # Максимальное количество итераций
 
     # График функций до нахождения решения
     print("Построение графиков функций системы...")
     plot_graph(funcs, x_range=(-2, 2), y_range=(-2, 2))  # Установим диапазон для x и y
+
+    # Ввод точности
+    while True:
+        try:
+            epsilon = float(input("Введите точность (epsilon): "))
+            if epsilon <= 0:
+                print("Точность должна быть положительным числом. Попробуйте снова.")
+            else:
+                break
+        except ValueError:
+            print("Ошибка! Пожалуйста, введите число.")
+
+    # Ввод максимального числа итераций
+    while True:
+        try:
+            max_iterations = int(input("Введите максимальное количество итераций: "))
+            if max_iterations <= 0:
+                print("Максимальное количество итераций должно быть положительным числом. Попробуйте снова.")
+            else:
+                break
+        except ValueError:
+            print("Ошибка! Пожалуйста, введите число.")
 
     # Ввод начальных приближений с клавиатуры
     x0 = []
@@ -138,8 +156,11 @@ def main():
             except ValueError:
                 print("Ошибка! Пожалуйста, введите число.")
 
+    # Опционально выводить шаги
+    verbose = input("Хотите выводить шаги итераций (y/n)? ").lower() == 'y'
+
     print("Решение системы уравнений методом Ньютона...")
-    solution, iterations, errors = newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations)
+    solution, iterations, errors = newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations, verbose)
 
     if solution is not None:
         print(f"\nРешение системы: {solution}")
