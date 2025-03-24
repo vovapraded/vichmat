@@ -10,7 +10,8 @@ def numerical_derivative(f, x, h=1e-5):
     except OverflowError:
         print(f"Ошибка переполнения при вычислении производной в точке x = {x}")
         return None
-
+def derivative_phi(fp, lambd):
+    return 1+lambd*fp
 # Метод для вычисления второй численной производной
 def second_derivative(f, x, h=1e-5):
     return (f(x + h) - 2 * f(x) + f(x - h)) / (h ** 2)
@@ -47,21 +48,46 @@ def chord_method_fixed(f, a, b, epsilon, max_iterations=1000):
 
     return x_next, max_iterations
 
-# Метод секущих
-def secant_method(f, x0, x1, epsilon, max_iterations=1000):
+def secant_method(f, a,b, epsilon, max_iterations=1000):
+    # Вычисляем значения первой и второй производной в a
+    f_a = f(a)
+    fpp_a = second_derivative(f,a)
+
+    # Условие для выбора x0
+    if f_a * fpp_a > 0:
+        x0 = a
+        print(f"x0 выбран как {x0} по условию f(a) * f''(a) > 0")
+    else:
+        x0 = b
+        print(f"x0 выбран как {x0} по условию f(b) * f''(b) > 0")
+
+
+    # Запрашиваем x1 у пользователя
+    x1 = float(input("Введите второе приближение x1: "))
+
     try:
         for i in range(max_iterations):
             fx0 = f(x0)
             fx1 = f(x1)
-            if np.abs(fx1 - fx0) < 1e-10:  # Чтобы избежать деления на ноль
-                print("Ошибка: разность значений функции слишком мала")
-                break
+
+
+
+            # Защита от деления на 0
+            if np.abs(fx1 - fx0) < 1e-12:
+                print(f"Ошибка: разница значений функции слишком мала (fx1 - fx0).")
+                return None, i + 1
+
+            # Вычисление следующего приближения
             x_next = x1 - fx1 * (x1 - x0) / (fx1 - fx0)
+
+            # Проверка на сходимость
             if np.abs(x_next - x1) < epsilon:
                 return x_next, i + 1
+
+            # Обновление приближений для следующей итерации
             x0, x1 = x1, x_next
 
-        return x1, max_iterations
+        return x1, max_iterations  # Если метод не сошелся за max_iterations
     except OverflowError:
         print("Ошибка переполнения при вычислениях метода секущих.")
         return None, max_iterations
@@ -70,13 +96,14 @@ def secant_method(f, x0, x1, epsilon, max_iterations=1000):
         return None, max_iterations
 
 
+
 # Метод простой итерации с использованием phi(x) = x + lambda * f(x)
 def simple_iteration_method(f, g, x0, epsilon, max_iterations=1000):
     try:
         x = x0
         for i in range(max_iterations):
             x_next = g(x)
-            if np.abs(x_next - x) < epsilon:
+            if np.abs(x_next - x) < epsilon and np.abs(f(x_next)) < epsilon:
                 return x_next, i + 1
             x = x_next
 
@@ -89,11 +116,35 @@ def simple_iteration_method(f, g, x0, epsilon, max_iterations=1000):
         return None, max_iterations
 
 
-# Проверка на наличие корней в интервале
-def check_roots(f, a, b):
-    if f(a) * f(b) > 0:
-        return False
-    return True
+def count_roots(f, a, b, step=0.01, eps=1e-5):
+    x = a
+    count = 0
+    prev_value = f(x)
+
+    while x < b:
+        try:
+            x_next = x + step
+            curr_value = f(x_next)
+
+            # Если смена знака — есть корень
+            if prev_value * curr_value < 0:
+                count += 1
+            # Если значение почти ноль (касание или точный ноль)
+            elif abs(curr_value) < eps:
+                count += 1
+                # Пропускаем следующий шаг, чтобы не засчитать дважды
+                x += step
+                curr_value = f(x + step)
+
+            prev_value = curr_value
+        except OverflowError:
+            pass
+        x += step
+
+    return count
+
+
+
 
 
 # Ввод уравнения и параметров
@@ -126,9 +177,11 @@ def input_nonlinear_equation():
         b = float(input("Введите конец интервала b: "))
         epsilon = float(input("Введите точность вычислений: "))
 
-        if not check_roots(f, a, b):
-            print(f"На интервале [{a}, {b}] нет корней.")
-            return None, None, None, None, None
+        root_count = count_roots(f, a, b)
+        if root_count == 0:
+            print(f"На интервале [{a}, {b}] не найдено ни одного корня.")
+        else:
+            print(f"На интервале [{a}, {b}] обнаружено примерно {root_count} корней.")
 
         return f, df, a, b, epsilon
     except Exception as e:
@@ -198,7 +251,6 @@ def plot_function(f, x_range=(-10, 10), step=0.1):
     except Exception as e:
         print(f"Ошибка при рисовании графика: {e}")
 
-
 # Основная программа
 def main():
     try:
@@ -209,20 +261,28 @@ def main():
         choice = input_method_choice()
         if choice is None:
             return
-        if choice == '3':
-            lambda_val = calculate_lambda(f, a, b)
-            print(f"Автоматически вычисленное значение lambda: {lambda_val}")
 
         if choice == '1':
             print("\nИспользуется метод хорд.")
             solution, iterations = chord_method_fixed(f, a, b, epsilon)
         elif choice == '2':
             print("\nИспользуется метод секущих.")
-            x1 = float(input("Введите второе приближение x1: "))
-            solution, iterations = secant_method(f, a, x1, epsilon)
+            solution, iterations = secant_method(f, a,b, epsilon)
         elif choice == '3':
             print("\nИспользуется метод простой итерации.")
+            lambda_val = calculate_lambda(f, a, b)
+
+            print(f"Автоматически вычисленное значение lambda: {lambda_val}")
             g = lambda x: phi(x, f, lambda_val)
+            der_a = derivative_phi(numerical_derivative(f, a), lambda_val)
+            der_b = derivative_phi(numerical_derivative(f, b), lambda_val)
+            print(der_a, der_b)
+            if abs(der_a) >= 1 or abs(der_b) >= 1:
+                print(f"ВНИМАНИЕ: Метод простой итерации может не сойтись, так как |phi'(x)| >= 1 на краях интервала.")
+
+            # print(numerical_derivative(g,-1))
+
+
             solution, iterations = simple_iteration_method(f, g, a, epsilon)
         else:
             print("Неверный выбор метода.")
@@ -245,6 +305,6 @@ def main():
     except Exception as e:
         print(f"Произошла ошибка в программе: {e}")
 
-
 if __name__ == "__main__":
     main()
+

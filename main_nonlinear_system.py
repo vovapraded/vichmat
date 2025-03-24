@@ -1,3 +1,5 @@
+from logging import error
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -31,7 +33,8 @@ def jacobian(x, funcs, n):
 # Метод для нахождения решения системы методом Ньютона
 def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100, verbose=False):
     x = np.array(x0)  # Преобразуем начальное приближение в массив numpy
-    errors = []
+    delta_x = []
+    max_delta_x = 0
 
     for i in range(max_iterations):
         # Вычисление значений функций в текущей точке
@@ -45,18 +48,17 @@ def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100, ve
             continue_solution = input("Детерминант Якобиана слишком мал. Хотите продолжить решение (y/n)? ")
             if continue_solution.lower() != 'y':
                 print("Прерывание решения.")
-                return None, i + 1, errors
+                return None, i + 1, delta_x, max_delta_x
 
 
         try:
             delta_x = np.linalg.solve(J, -F)  # Решение системы J*delta_x = -F
         except np.linalg.LinAlgError:
             print(f"Ошибка: Якобиан вырожден на итерации {i + 1}")
-            return None, i + 1, errors
+            return None, i + 1, delta_x, max_delta_x
 
         x_new = x + delta_x  # Новый вектор
-        error = np.linalg.norm(delta_x)  # Вектор погрешностей
-        errors.append(error)
+        max_delta_x = np.max(np.abs(delta_x))  # Отклонение
 
         if verbose:
             # Выводим шапку таблицы
@@ -67,12 +69,12 @@ def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100, ve
             # Выводим шаги в требуемом формате
             print(f"{i + 1:<12}{x[0]:<12.6f}{x[1]:<12.6f}{x_new[0]:<12.6f}{x_new[1]:<12.6f}{np.linalg.norm(delta_x):<12.6f}")
 
-        if error < epsilon:  # Если погрешность меньше требуемой, возвращаем результат
-            return x_new, i + 1, errors
+        if max_delta_x < epsilon:  # Если погрешность меньше требуемой, возвращаем результат
+            return x_new, i + 1, delta_x, max_delta_x
 
         x = x_new  # Обновляем значение переменной
 
-    return x, max_iterations, errors
+    return x, max_iterations, delta_x, max_delta_x
 
 
 # Функции для системы уравнений
@@ -160,12 +162,14 @@ def main():
     verbose = input("Хотите выводить шаги итераций (y/n)? ").lower() == 'y'
 
     print("Решение системы уравнений методом Ньютона...")
-    solution, iterations, errors = newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations, verbose)
+    solution, iterations, delta_x, error  = newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations, verbose)
 
     if solution is not None:
         print(f"\nРешение системы: {solution}")
         print(f"Количество итераций: {iterations}")
-        print(f"Вектор погрешностей: {errors}")
+        print(f"Вектор погрешностей: {delta_x}")
+        print(f"Максимальное отклонение по координате: {error}")
+
     else:
         print("Не удалось найти решение")
 
