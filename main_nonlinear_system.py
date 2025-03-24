@@ -63,11 +63,11 @@ def newton_method_system(funcs, jacobian, x0, n, epsilon, max_iterations=100, ve
         if verbose:
             # Выводим шапку таблицы
             if i == 0:
-                print(f"{'№ Итерации':<12}{'xk':<12}{'yk':<12}{'xk+1':<12}{'yk+1':<12}{'xk+1 - xk':<12}")
+                print(f"{'№ Итерации':<12}{'xk':<12}{'yk':<12}{'xk+1':<12}{'yk+1':<12}{'error':<12}")
                 print("-" * 72)
 
             # Выводим шаги в требуемом формате
-            print(f"{i + 1:<12}{x[0]:<12.6f}{x[1]:<12.6f}{x_new[0]:<12.6f}{x_new[1]:<12.6f}{np.linalg.norm(delta_x):<12.6f}")
+            print(f"{i + 1:<12}{x[0]:<12.6f}{x[1]:<12.6f}{x_new[0]:<12.6f}{x_new[1]:<12.6f}{max_delta_x:<12.6f}")
 
         if max_delta_x < epsilon:  # Если погрешность меньше требуемой, возвращаем результат
             return x_new, i + 1, delta_x, max_delta_x
